@@ -1,4 +1,4 @@
-Shader "Master/Toon" {
+Shader "Master/Lambert" {
 	
 	//Properties定义属性
 	//1.可以通过C#脚本设置值
@@ -33,18 +33,26 @@ Shader "Master/Toon" {
 
 			//把顶点着色器的数据传递给片元着色器
 			struct v2f {
+				//SV_POSITION描述变量存储物体顶点在屏幕坐标上的位置(裁剪空间中的顶点坐标)
 				float4 pos : SV_POSITION;
+				//Color告诉Shader,color存储的是顶点颜色
 				float3 color : Color;
 			};
 
-			float4 _Diffuse;
+			fixed4 _Diffuse;
 
 			v2f vert (appdata v) {
 				v2f o;
 				o.pos = UnityObjectToClipPos(v.vertex);
+				//o.color = fixed3(0.0,1.0,0.0);//直接设置为绿色
+				o.color = _Diffuse;
+				//环境光
 				fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz;
+				//表面法线  这里使用的是逆转置矩阵
 				fixed3 worldNormal = normalize(mul(v.normal, (float3x3)unity_WorldToObject));
+				//顶点到光源的方向 _WorldSpaceLightPos0表示光源的方向(只有一个光源且光源类型是平行光)
 				fixed3 worldLight = normalize(_WorldSpaceLightPos0.xyz);
+				//_LightColor0表示该Pass处理的光源颜色和强度信息
 				fixed3 diffuse = _LightColor0.rgb * _Diffuse.rgb * saturate(dot(worldNormal,worldLight));
 				o.color = ambient + diffuse;
 				return o;
