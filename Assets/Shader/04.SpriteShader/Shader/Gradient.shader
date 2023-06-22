@@ -1,13 +1,19 @@
-//图片置灰
-Shader "Master/2D/Gray" {
+//颜色渐变
+Shader "Master/2D/Gradient" {
 
     Properties {
 
         [PerRenderData] _MainTex("Sprite Texture", 2D) = "white"{}
         _Color("Tint", Color) = (1,1,1,1)
         [MaterialToggle] PixelSnap("Pixel Snap", float) = 0
-        //灰化系数
-        _GrayFactor("GrayFactor", Range(0,1)) = 1
+
+        //是否是垂直方向
+        [Toggle(VertialDirection)] _VertialDirection("VertialDirection", Int) = 0
+
+        //渐变的初始颜色
+        _FromColor("FromColor", Color) = (1,1,1,1)
+        //渐变的目标颜色
+        _ToColor("ToColor", Color) = (0,0,0,1)
 
     }
 
@@ -63,14 +69,15 @@ Shader "Master/2D/Gray" {
             sampler2D _MainTex;
             sampler2D _AlphaTex;
             float _AlphaSplitEnabled;
-            fixed _GrayFactor;
+            
+            fixed _VertialDirection;
+            fixed4 _FromColor;
+            fixed4 _ToColor;
 
             fixed4 SampleSpriteTexture(float2 uv) {
                 fixed4 color = tex2D(_MainTex, uv);
-                //color.rgb = dot(color.rgb, fixed3(0.299,0.587, 0.114));
-                fixed grayValue = color.r * 0.229 + color.g * 0.587 + color.b * 0.114;
-                fixed4 grayColor = fixed4(grayValue, grayValue, grayValue, 1.0);
-                color = lerp(color, grayColor,_GrayFactor);
+                fixed factorValue = lerp(uv.x, uv.y, _VertialDirection);
+                color = lerp(_FromColor, _ToColor, factorValue) * color;
 #if UNITY_TEXTURE_ALPHASPLIT_ALLOWED
                 if(_AlphaSplitEnabled)
                     color.a = tex2D(_AlphaTex, uv).r;

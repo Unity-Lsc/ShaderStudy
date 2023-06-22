@@ -1,14 +1,18 @@
-//图片置灰
-Shader "Master/2D/Gray" {
+//4方向颜色渐变
+Shader "Master/2D/4Gradient" {
 
     Properties {
 
         [PerRenderData] _MainTex("Sprite Texture", 2D) = "white"{}
         _Color("Tint", Color) = (1,1,1,1)
-        [MaterialToggle] PixelSnap("Pixel Snap", float) = 0
-        //灰化系数
-        _GrayFactor("GrayFactor", Range(0,1)) = 1
 
+        //4个点的颜色值
+        _LeftTopColor("LeftTopColor", Color) = (1,1,1,1)
+        _LeftBottomColor("LeftBottomColor", Color) = (1,1,1,1)
+        _RightTopColor("RightTopColor", Color) = (1,1,1,1)
+        _RightBottomColor("RightBottomColor", Color) = (1,1,1,1)
+
+        [MaterialToggle] PixelSnap("Pixel Snap", float) = 0
     }
 
     SubShader {
@@ -62,15 +66,20 @@ Shader "Master/2D/Gray" {
 
             sampler2D _MainTex;
             sampler2D _AlphaTex;
+            fixed4 _LeftTopColor;
+            fixed4 _LeftBottomColor;
+            fixed4 _RightTopColor;
+            fixed4 _RightBottomColor;
             float _AlphaSplitEnabled;
-            fixed _GrayFactor;
 
             fixed4 SampleSpriteTexture(float2 uv) {
                 fixed4 color = tex2D(_MainTex, uv);
-                //color.rgb = dot(color.rgb, fixed3(0.299,0.587, 0.114));
-                fixed grayValue = color.r * 0.229 + color.g * 0.587 + color.b * 0.114;
-                fixed4 grayColor = fixed4(grayValue, grayValue, grayValue, 1.0);
-                color = lerp(color, grayColor,_GrayFactor);
+                
+                fixed4 leftTop2RightTopColor = lerp(_LeftTopColor, _RightTopColor, uv.x);
+                fixed4 leftBotton2RightBottomColor = lerp(_LeftBottomColor, _RightBottomColor, uv.x);
+                fixed4 bottom2TopColor = lerp(leftBotton2RightBottomColor, leftTop2RightTopColor, uv.y);
+                color = bottom2TopColor * color;
+
 #if UNITY_TEXTURE_ALPHASPLIT_ALLOWED
                 if(_AlphaSplitEnabled)
                     color.a = tex2D(_AlphaTex, uv).r;

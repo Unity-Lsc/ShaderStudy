@@ -1,13 +1,15 @@
-//图片置灰
-Shader "Master/2D/Gray" {
+//模糊
+Shader "Master/2D/Blur" {
 
     Properties {
 
         [PerRenderData] _MainTex("Sprite Texture", 2D) = "white"{}
         _Color("Tint", Color) = (1,1,1,1)
+
+        //模糊程度
+        _Blur("Blur", Range(0,1)) = 0.01
+
         [MaterialToggle] PixelSnap("Pixel Snap", float) = 0
-        //灰化系数
-        _GrayFactor("GrayFactor", Range(0,1)) = 1
 
     }
 
@@ -62,15 +64,21 @@ Shader "Master/2D/Gray" {
 
             sampler2D _MainTex;
             sampler2D _AlphaTex;
+            fixed _Blur;
             float _AlphaSplitEnabled;
-            fixed _GrayFactor;
 
             fixed4 SampleSpriteTexture(float2 uv) {
                 fixed4 color = tex2D(_MainTex, uv);
-                //color.rgb = dot(color.rgb, fixed3(0.299,0.587, 0.114));
-                fixed grayValue = color.r * 0.229 + color.g * 0.587 + color.b * 0.114;
-                fixed4 grayColor = fixed4(grayValue, grayValue, grayValue, 1.0);
-                color = lerp(color, grayColor,_GrayFactor);
+                
+                fixed distance = _Blur * 0.0625f;
+                fixed4 leftColor = tex2D(_MainTex, float2(uv.x - distance, uv.y));
+                fixed4 rightColor = tex2D(_MainTex, float2(uv.x + distance, uv.y));
+                fixed4 topColor = tex2D(_MainTex, float2(uv.x, uv.y + distance));
+                fixed4 bottomColor = tex2D(_MainTex, float2(uv.x, uv.y - distance));
+                half factorN = 2;
+                half factorM = 1;
+                color = (color * factorN + leftColor * factorM + rightColor * factorM + topColor * factorM + bottomColor * factorM) / (factorN + factorM * 4);
+
 #if UNITY_TEXTURE_ALPHASPLIT_ALLOWED
                 if(_AlphaSplitEnabled)
                     color.a = tex2D(_AlphaTex, uv).r;
